@@ -14,11 +14,11 @@ class Game:
         self.players = []
         board = [(x, y) for x in range(self.X) for y in range(self.Y)]
 
-        self.players.append(Player(body=random.choice(board),
-                                   attr=player1_attr, policy=None, board_x=self.X, board_y=self.Y))
+        self.players.append(Player(body=random.choice(
+            board), attr=player1_attr, policy=None, board_x=self.X, board_y=self.Y))
 
-        self.players.append(Player(body=random.choice(board),
-                                   attr=player2_attr, policy=None, board_x=self.X, board_y=self.Y))
+        self.players.append(Player(body=random.choice(
+            board), attr=player2_attr, policy=None, board_x=self.X, board_y=self.Y))
 
         if self.show:
             pg.init()
