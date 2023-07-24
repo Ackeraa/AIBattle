@@ -18,14 +18,16 @@ class Player:
         self.policy = policy
         self.board_x = board_x
         self.board_y = board_y
-        self.color = (random.randint(0, 255), random.randint(
-            0, 255), random.randint(0, 255))
+        self.color = (
+            random.randint(0, 255),
+            random.randint(0, 255),
+            random.randint(0, 255),
+        )
 
     def move(self):
         time.sleep(2)
         move_dir = random.choice(DIRECTIONS)
-        self.body = (self.body[0] + move_dir[0],
-                     self.body[1] + move_dir[1])
+        self.body = (self.body[0] + move_dir[0], self.body[1] + move_dir[1])
 
     def attack(self):
         pass
