@@ -1,0 +1,19 @@
+TITTLE = "AI Battle"
+FONT_NAME = "arial"
+FPS = 60
+ROWS = 10
+COLS = 10
+GRID_SIZE = 40
+MARGIN_SIZE = 50
+
+DIRECTIONS = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+LIGHTBLUE = (0, 155, 155)
+BGCOLOR = BLACK
+LINE_COLOR = WHITE
