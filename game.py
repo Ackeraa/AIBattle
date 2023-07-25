@@ -5,7 +5,16 @@ from settings import *
 
 
 class Game:
-    def __init__(self, player1_attr, player2_attr, show=False, rows=ROWS, cols=COLS):
+    def __init__(
+        self,
+        player1_attr,
+        player2_attr,
+        player1_genes,
+        player2_genes,
+        show=False,
+        rows=ROWS,
+        cols=COLS,
+    ):
         self.Y = rows
         self.X = cols
         self.show = show
@@ -17,7 +26,7 @@ class Game:
             Player(
                 body=random.choice(board),
                 attr=player1_attr,
-                policy=None,
+                genes=player1_genes,
                 board_x=self.X,
                 board_y=self.Y,
             )
@@ -27,7 +36,7 @@ class Game:
             Player(
                 body=random.choice(board),
                 attr=player2_attr,
-                policy=None,
+                policy=player2_genes,
                 board_x=self.X,
                 board_y=self.Y,
             )
@@ -49,8 +58,63 @@ class Game:
                 self._event()
                 self._draw()
 
-            for player in self.players:
-                player.move()
+            for i, player in enumerate(self.players):
+                state = self.get_state(i)
+                player.react(state)
+
+            for i, player in enumerate(self.players):
+                self.react(i)
+
+    def react(self, who):
+        """
+        0: move towards opp
+        1: move away from opp
+        2: use skill_attack
+        3: use skill_stun
+        """
+        player = self.players[who]
+        opp = self.players[1 - who]
+
+        action = player.actions[-1]
+
+        if action == 0:
+            self._move_towards(player, opp)
+        elif action == 1:
+            self._move_away(player, opp)
+        else:
+            player.use_skill(action - 2, opp)
+
+    def get_state(self, who):
+        """
+        player's:
+          hp
+        opp's:
+          hp, last action
+        distance:
+          to opp,
+        """
+        player = self.players[who]
+        opp = self.players[1 - who]
+        state = []
+
+        # player's hp
+        state.append(1.0 / player.attr.hp)
+
+        # opp's hp
+        state.append(1.0 / opp.attr.hp)
+
+        # opp's last action
+        actions = [0] * ACTION_NUMS
+        actions[opp.actions[-1]] = 1
+        state.extend(actions)
+
+        # distance to opp
+        state.append(
+            1.0
+            / (abs(player.body[0] - opp.body[0]) + abs(player.body[1] - opp.body[1]))
+        )
+
+        return state
 
     def _draw(self):
         self.screen.fill(BGCOLOR)
