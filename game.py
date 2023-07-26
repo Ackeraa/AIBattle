@@ -1,5 +1,7 @@
 import pygame as pg
 import random
+import numpy as np
+import os
 from player import Player, PlayerAttr
 from settings import *
 
@@ -19,6 +21,8 @@ class Game:
         self.X = cols
         self.show = show
 
+        self.clock = 0
+
         self.players = []
         board = [(x, y) for x in range(self.X) for y in range(self.Y)]
 
@@ -27,8 +31,6 @@ class Game:
                 body=random.choice(board),
                 attr=player1_attr,
                 genes=player1_genes,
-                board_x=self.X,
-                board_y=self.Y,
             )
         )
 
@@ -36,9 +38,7 @@ class Game:
             Player(
                 body=random.choice(board),
                 attr=player2_attr,
-                policy=player2_genes,
-                board_x=self.X,
-                board_y=self.Y,
+                genes=player2_genes,
             )
         )
 
@@ -63,14 +63,16 @@ class Game:
                 player.react(state)
 
             for i, player in enumerate(self.players):
-                self.react(i)
+                self._react(i)
 
-    def react(self, who):
+            self._update()
+
+    def _react(self, who):
         """
         0: move towards opp
         1: move away from opp
-        2: use skill_attack
-        3: use skill_stun
+        2: do nothing
+        else: use skill
         """
         player = self.players[who]
         opp = self.players[1 - who]
@@ -81,17 +83,44 @@ class Game:
             self._move_towards(player, opp)
         elif action == 1:
             self._move_away(player, opp)
+        elif action == 2:
+            pass
         else:
             player.use_skill(action - 2, opp)
 
-    def get_state(self, who):
+    def _move_towards(self, player, opp):
+        player_x, player_y = player.body
+        opp_x, opp_y = opp.body
+
+        # move horizontally first
+        if player_x != opp_x:
+            player.body[0] += 1 if player_x < opp_x else -1
+        # move vertically then
+        elif player_y != opp_y:
+            player.body[1] += 1 if player_y < opp_y else -1
+
+    def _move_away(self, player, opp):
+        player_x, player_y = player.body
+        opp_x, opp_y = opp.body
+
+        # move horizontally first
+        if player_x != opp_x:
+            if 0 < player_x < self.X - 1:
+                player.body[0] -= 1 if player_x < opp_x else -1
+        # move vertically then
+        elif player_y != opp_y:
+            if 0 < player_y < self.Y - 1:
+                player.body[1] -= 1 if player_y < opp_y else -1
+
+    def _get_state(self, who):
         """
         player's:
-          hp
+          hp 1
         opp's:
-          hp, last action
+          hp 1
+          last action ACTION_NUMS
         distance:
-          to opp,
+          to opp 1
         """
         player = self.players[who]
         opp = self.players[1 - who]
@@ -115,6 +144,11 @@ class Game:
         )
 
         return state
+
+    def _update(self):
+        self.clock += 1
+        for player in self.players:
+            player.update(self.clock)
 
     def _draw(self):
         self.screen.fill(BGCOLOR)
@@ -160,6 +194,29 @@ class Game:
                 self.running = False
                 pg.quit()
                 quit()
+
+
+def play_best(score):
+    """Use the saved Neural Network model play the game.
+    Args:
+        score: Specify which individual's genes to load, also indicates the highest score it can get.
+    """
+    genes_pth = os.path.join("genes", "best", str(score))
+    with open(genes_pth, "r") as f:
+        genes = np.array(list(map(float, f.read().split())))
+
+
+def play_all(n=P_SIZE):
+    """Use the saved population's genes play the game.
+    Args:
+        n: the size of the population.
+    """
+    genes_list = []
+    for i in range(n):
+        genes_pth = os.path.join("genes", "all", str(i))
+        with open(genes_pth, "r") as f:
+            genes = np.array(list(map(float, f.read().split())))
+        genes_list.append(genes)
 
 
 if __name__ == "__main__":

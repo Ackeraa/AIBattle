@@ -1,10 +1,32 @@
 import random
-import argparse
 import numpy as np
 from game import Game
-from individual import Individual
 from settings import *
 import os
+
+
+class Individual:
+    """Individual in population of Genetic Algorithm.
+    Attributes:
+        genes: A list which can transform to weight of Neural Network.
+        score: Score of the snake played by its Neural Network.
+        steps: Steps of the snake played by its Neural Network.
+        fitnees: Fitness of Individual.
+        seed: The random seed of the game, saved for reproduction.
+    """
+
+    def __init__(self, genes):
+        self.genes = genes
+        self.score = 0
+        self.steps = 0
+        self.fitness = 0
+        self.seed = None
+
+    def get_fitness(self, opp_genes):
+        """Get the fitness of Individual."""
+        game = Game(PLAYER1_ATTR, PLAYER2_ATTR, self.genes, opp_genes)
+        self.score, self.steps = game.play()
+        self.fitness = (self.score + 1 / self.steps) * 100000
 
 
 class GA:
@@ -29,6 +51,7 @@ class GA:
         self.population = []
         self.best_individual = None
         self.avg_score = 0
+        self.opp_genes = self.generate_ancestor()
 
     def generate_ancestor(self):
         for i in range(self.p_size):

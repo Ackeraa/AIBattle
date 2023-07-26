@@ -1,14 +1,11 @@
 from settings import *
-import numpy as np
 from nn import Net
-import time
 import random
 
 
 class PlayerAttr:
-    def __init__(self, hp, spd, skills):
+    def __init__(self, hp, skills):
         self.hp = hp
-        self.spd = spd
         self.skills = skills
 
 
@@ -35,3 +32,10 @@ class Player:
             return
 
         self.attr.skills[skill].use(self, opp)
+
+    def update(self, clock):
+        for skill in self.attr.skills:
+            if skill is not None:
+                skill.update(clock)
+
+    def load_genes(self):
