@@ -17,7 +17,7 @@ if __name__ == "__main__":
         "-s",
         "--show",
         action="store_true",
-        help="whether to show the best individual to play snake after each envolve.",
+        help="whether to show the best individual to play game after each envolve.",
     )
     args = parser.parse_args()
 
@@ -34,8 +34,8 @@ if __name__ == "__main__":
         generation += 1
         ga.evolve()
         print(
-            "generation: {}, record: {}, best score: {}, average score: {}".format(
-                generation, record, ga.best_individual.score, ga.avg_score
+            "generation: {}, record: {}, best fitness: {}, average fitness: {}".format(
+                generation, record, ga.best_individual.fitness, ga.avg_fitness
             )
         )
 
@@ -43,16 +43,15 @@ if __name__ == "__main__":
         if generation % UPDATE_GENE_STEP == 0:
             ga.opp_genes = ga.best_individual.genes
 
-        # Show the best individual to play snake.
+        # Show the best individual to play game.
         if args.show:
             genes = ga.best_individual.genes
-            seed = ga.best_individual.seed
-            game = Game(show=True, genes_list=[genes], seed=seed)
+            game = Game(genes, ga.opp_genes)
             game.play()
 
         # Save the best individual.
-        if ga.best_individual.score >= record:
-            record = ga.best_individual.score
+        if ga.best_individual.fitness >= record:
+            record = ga.best_individual.fitness
             ga.save_best()
 
         # Save the population every 20 generation.

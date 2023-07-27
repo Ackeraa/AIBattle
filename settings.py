@@ -1,4 +1,3 @@
-from player import PlayerAttr, Player
 from skills.skill_attack import SkillAttack
 
 TITTLE = "AI Battle"
@@ -24,31 +23,24 @@ LINE_COLOR = WHITE
 INF = 100000000
 
 # Player settings
-SKILL_NUMS = 1
-ACTION_NUMS = SKILL_NUMS + 2
-HISTORY_LEN = 3
-
 SKILLS = [
     SkillAttack(10, 10, 0, 1),
 ]
-
-
-def CHOOSE_SKILLS(skill_ids):
-    global SKILLS
-    skills = {}
-    for i in skill_ids:
-        skills[i] = SKILLS[i]
-    return skills
-
-
-PLAYER1_ATTR = PlayerAttr(hp=100, skills=CHOOSE_SKILLS([0]))
-PLAYER2_ATTR = PlayerAttr(hp=100, skills=CHOOSE_SKILLS([0]))
+SKILL_NUMS = len(SKILLS)
+ACTION_NUMS = SKILL_NUMS + 3
+HISTORY_LEN = 3
+# if the distance is larger than this, the player1 will die, game over
+MAX_AWAY_DIS = 10
+MAX_TICKS = 100
+ACTIONS = ["Do nothing", "Move towards", "Move away"]
+for skill in SKILLS:
+    ACTIONS.append(f"Use {skill.name}")
 
 # AI settings
-N_INPUT = 6
+N_INPUT = ACTION_NUMS + 3
 N_HIDDEN1 = 20
 N_HIDDEN2 = 12
-N_OUTPUT = ACTION_NUMS + 3
+N_OUTPUT = ACTION_NUMS
 GENES_LEN = (
     N_INPUT * N_HIDDEN1
     + N_HIDDEN1 * N_HIDDEN2

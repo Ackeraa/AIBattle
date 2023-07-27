@@ -9,24 +9,24 @@ class Individual:
     """Individual in population of Genetic Algorithm.
     Attributes:
         genes: A list which can transform to weight of Neural Network.
-        score: Score of the snake played by its Neural Network.
-        steps: Steps of the snake played by its Neural Network.
+        ticks: The time of the game.
+        player_hp: HP of player.
+        opp_hp: HP of opponent.
         fitnees: Fitness of Individual.
-        seed: The random seed of the game, saved for reproduction.
     """
 
     def __init__(self, genes):
         self.genes = genes
-        self.score = 0
-        self.steps = 0
+        self.ticks = 1
+        self.player_hp = 0
+        self.opp_hp = 0
         self.fitness = 0
-        self.seed = None
 
     def get_fitness(self, opp_genes):
         """Get the fitness of Individual."""
-        game = Game(PLAYER1_ATTR, PLAYER2_ATTR, self.genes, opp_genes)
-        self.score, self.steps = game.play()
-        self.fitness = (self.score + 1 / self.steps) * 100000
+        game = Game(self.genes, opp_genes, show=True)
+        self.ticks, self.player_hp, self.opp_hp = game.play()
+        self.fitness = (self.player_hp - self.opp_hp + 1 / self.ticks) * 100000
 
 
 class GA:
@@ -38,7 +38,7 @@ class GA:
         mutate_rate: Probability of the mutation.
         population: A list of individuals.
         best_individual: Individual with best fitness.
-        avg_score: Average score of the population.
+        avg_fitness: Average ticks of the population.
     """
 
     def __init__(
@@ -50,8 +50,8 @@ class GA:
         self.mutate_rate = mutate_rate
         self.population = []
         self.best_individual = None
-        self.avg_score = 0
-        self.opp_genes = self.generate_ancestor()
+        self.avg_fitness = 0
+        self.opp_genes = np.random.uniform(-1, 1, self.genes_len)
 
     def generate_ancestor(self):
         for i in range(self.p_size):
@@ -104,11 +104,11 @@ class GA:
 
     def evolve(self):
         """The main procss of Genetic Algorithm."""
-        sum_score = 0
+        sum_fitness = 0
         for individual in self.population:
-            individual.get_fitness()
-            sum_score += individual.score
-        self.avg_score = sum_score / len(self.population)
+            individual.get_fitness(self.opp_genes)
+            sum_fitness += individual.fitness
+        self.avg_fitness = sum_fitness / len(self.population)
 
         self.population = self.elitism_selection(
             self.p_size
@@ -131,15 +131,12 @@ class GA:
         self.population.extend(children)
 
     def save_best(self):
-        """Save the best individual that can get #score score so far."""
-        score = self.best_individual.score
-        genes_pth = os.path.join("genes", "best", str(score))
+        """Save the best individual so far."""
+        fitness = int(self.best_individual.fitness)
+        genes_pth = os.path.join("genes", "best", str(fitness))
         with open(genes_pth, "w") as f:
             for gene in self.best_individual.genes:
                 f.write(str(gene) + " ")
-        seed_pth = os.path.join("seed", str(score))
-        with open(seed_pth, "w") as f:
-            f.write(str(self.best_individual.seed))
 
     def save_all(self):
         """Save the population."""

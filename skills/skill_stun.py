@@ -1,4 +1,4 @@
-from skill_base import SkillBase
+from skills.skill_base import SkillBase
 
 
 # skill 1
@@ -10,5 +10,5 @@ class SkillStun(SkillBase):
     def use(self, player, opp):
         pass
 
-    def update(self, clock):
+    def update(self, ticks):
         pass

@@ -2,15 +2,15 @@ import pygame as pg
 import random
 import numpy as np
 import os
+import time
 from player import Player, PlayerAttr
+from players_attr import player1_attr, player2_attr
 from settings import *
 
 
 class Game:
     def __init__(
         self,
-        player1_attr,
-        player2_attr,
         player1_genes,
         player2_genes,
         show=False,
@@ -21,26 +21,27 @@ class Game:
         self.X = cols
         self.show = show
 
-        self.clock = 0
+        self.ticks = 0
 
-        self.players = []
-        board = [(x, y) for x in range(self.X) for y in range(self.Y)]
+        board = [[x, y] for x in range(self.X) for y in range(self.Y)]
 
-        self.players.append(
-            Player(
-                body=random.choice(board),
-                attr=player1_attr,
-                genes=player1_genes,
-            )
+        player1 = Player(
+            body=random.choice(board),
+            attr=player1_attr,
+            genes=player1_genes,
+            board_x=self.X,
+            board_y=self.Y,
         )
-
-        self.players.append(
-            Player(
-                body=random.choice(board),
-                attr=player2_attr,
-                genes=player2_genes,
-            )
+        player2 = Player(
+            body=random.choice(board),
+            attr=player2_attr,
+            genes=player2_genes,
+            board_x=self.X,
+            board_y=self.Y,
         )
+        player1.opp = player2
+        player2.opp = player1
+        self.players = [player1, player2]
 
         if self.show:
             pg.init()
@@ -58,97 +59,44 @@ class Game:
                 self._event()
                 self._draw()
 
-            for i, player in enumerate(self.players):
-                state = self.get_state(i)
-                player.react(state)
+            for player in self.players:
+                player.get_action()
 
-            for i, player in enumerate(self.players):
-                self._react(i)
+            for player in self.players:
+                player.react()
 
             self._update()
 
-    def _react(self, who):
-        """
-        0: move towards opp
-        1: move away from opp
-        2: do nothing
-        else: use skill
-        """
-        player = self.players[who]
-        opp = self.players[1 - who]
+            if self._is_over():
+                return self.ticks, self.players[0].attr.hp, self.players[1].attr.hp
+            time.sleep(1)
 
-        action = player.actions[-1]
+    def _is_over(self):
+        """Check if the game is over."""
+        # If one player's hp is less than 0, the game is over.
+        for player in self.players:
+            if player.attr.hp <= 0:
+                return True
 
-        if action == 0:
-            self._move_towards(player, opp)
-        elif action == 1:
-            self._move_away(player, opp)
-        elif action == 2:
-            pass
-        else:
-            player.use_skill(action - 2, opp)
+        # If player1 away from player2 of more than MAX_AWAY_DIS, the game is over.
+        if (
+            abs(self.players[0].body[0] - self.players[1].body[0])
+            + abs(self.players[0].body[1] - self.players[1].body[1])
+            > MAX_AWAY_DIS
+        ):
+            self.players[0].attr.hp = 0
 
-    def _move_towards(self, player, opp):
-        player_x, player_y = player.body
-        opp_x, opp_y = opp.body
+            return True
 
-        # move horizontally first
-        if player_x != opp_x:
-            player.body[0] += 1 if player_x < opp_x else -1
-        # move vertically then
-        elif player_y != opp_y:
-            player.body[1] += 1 if player_y < opp_y else -1
-
-    def _move_away(self, player, opp):
-        player_x, player_y = player.body
-        opp_x, opp_y = opp.body
-
-        # move horizontally first
-        if player_x != opp_x:
-            if 0 < player_x < self.X - 1:
-                player.body[0] -= 1 if player_x < opp_x else -1
-        # move vertically then
-        elif player_y != opp_y:
-            if 0 < player_y < self.Y - 1:
-                player.body[1] -= 1 if player_y < opp_y else -1
-
-    def _get_state(self, who):
-        """
-        player's:
-          hp 1
-        opp's:
-          hp 1
-          last action ACTION_NUMS
-        distance:
-          to opp 1
-        """
-        player = self.players[who]
-        opp = self.players[1 - who]
-        state = []
-
-        # player's hp
-        state.append(1.0 / player.attr.hp)
-
-        # opp's hp
-        state.append(1.0 / opp.attr.hp)
-
-        # opp's last action
-        actions = [0] * ACTION_NUMS
-        actions[opp.actions[-1]] = 1
-        state.extend(actions)
-
-        # distance to opp
-        state.append(
-            1.0
-            / (abs(player.body[0] - opp.body[0]) + abs(player.body[1] - opp.body[1]))
-        )
-
-        return state
+        # If ticks is more than MAX_TICKS, the game is over.
+        if self.ticks > MAX_TICKS:
+            # TODO: could let player1 die
+            return True
 
     def _update(self):
-        self.clock += 1
+        self.ticks += 1
         for player in self.players:
-            player.update(self.clock)
+            player.update(self.ticks)
 
     def _draw(self):
         self.screen.fill(BGCOLOR)
@@ -171,11 +119,40 @@ class Game:
                 1,
             )
 
+        # Draw player's hp text
+        for i, player in enumerate(self.players):
+            hp = str(player.attr.hp)
+            text = f"HP{i+1}:  {str(player.attr.hp)}"
+            text_len = len(text) // 2 * 10
+            text = pg.font.SysFont(FONT_NAME, 20).render(text, True, WHITE)
+            text_rect = text.get_rect()
+            text_rect.center = (
+                MARGIN_SIZE
+                + text_len
+                + i * (self.width - 2 * MARGIN_SIZE - 2 * text_len),
+                MARGIN_SIZE // 2,
+            )
+            self.screen.blit(text, text_rect)
+
+        # Draw player's action text
+        for i, player in enumerate(self.players):
+            text = f"Move{i+1}:  {str(ACTIONS[player.actions[-1]])}"
+            text_len = len(text) // 2 * 10
+            text = pg.font.SysFont(FONT_NAME, 16).render(text, True, WHITE)
+            text_rect = text.get_rect()
+            text_rect.center = (
+                MARGIN_SIZE
+                + text_len
+                + i * (self.width - 2 * MARGIN_SIZE - 2 * text_len),
+                self.height - MARGIN_SIZE // 2,
+            )
+            self.screen.blit(text, text_rect)
+
         # Draw player
         for player in self.players:
             pg.draw.rect(
                 self.screen,
-                player.color,
+                player.attr.color,
                 (
                     player.body[0] * GRID_SIZE + MARGIN_SIZE,
                     player.body[1] * GRID_SIZE + MARGIN_SIZE,
@@ -196,12 +173,12 @@ class Game:
                 quit()
 
 
-def play_best(score):
+def play_best(fitness):
     """Use the saved Neural Network model play the game.
     Args:
-        score: Specify which individual's genes to load, also indicates the highest score it can get.
+        fitness: Specify which individual's genes to load, also indicates the highest fitness it can get.
     """
-    genes_pth = os.path.join("genes", "best", str(score))
+    genes_pth = os.path.join("genes", "best", str(fitness))
     with open(genes_pth, "r") as f:
         genes = np.array(list(map(float, f.read().split())))
 
