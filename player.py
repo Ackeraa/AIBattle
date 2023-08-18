@@ -1,6 +1,4 @@
 from settings import *
-from nn import Net
-import random
 
 
 class PlayerAttr:
@@ -11,10 +9,10 @@ class PlayerAttr:
 
 
 class Player:
-    def __init__(self, body, attr, genes, board_x, board_y, opp=None):
+    def __init__(self, body, attr, nn, board_x, board_y, opp=None):
         self.body = body
         self.attr = attr
-        self.nn = Net(N_INPUT, N_HIDDEN1, N_HIDDEN2, N_OUTPUT, genes.copy())
+        self.nn = nn
         self.actions = [0]
         self.opp = opp
         self.board_x = board_x
@@ -27,7 +25,7 @@ class Player:
             self.actions.pop(0)
         self.actions.append(action)
 
-    def react(self):
+    def react(self, ticks):
         """
         0: do nothing
         1: move towards opp
@@ -43,7 +41,7 @@ class Player:
         elif action == 2:
             self._move_away()
         else:
-            self._use_skill(action - 2)
+            self._use_skill(action - 3, ticks)
 
     def _get_state(self):
         """
@@ -119,12 +117,15 @@ class Player:
             elif player_y < self.board_y - 1:
                 self.body[1] += 1
 
-    def _use_skill(self, skill):
-        if skill not in self.attr.skills:
+    def _use_skill(self, skill, ticks):
+        if skill not in self.attr.skills.keys():
             return
 
-        self.attr.skills[skill].use(self, self.opp)
+        self.attr.skills[skill].use(self, self.opp, ticks)
 
     def update(self, ticks):
         for skill in self.attr.skills.values():
             skill.update(ticks)
+
+        if self.attr.hp < 0:
+            self.attr.hp = 0

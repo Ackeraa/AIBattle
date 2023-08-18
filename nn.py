@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import random
+from settings import *
 
 
 class Net(nn.Module):
@@ -18,9 +19,15 @@ class Net(nn.Module):
         sigmoid: Activation function of output.
     """
 
-    def __init__(self, n_input, n_hidden1, n_hidden2, n_output, weights):
+    def __init__(
+        self,
+        n_input=N_INPUT,
+        n_hidden1=N_HIDDEN1,
+        n_hidden2=N_HIDDEN2,
+        n_output=N_OUTPUT,
+        weights=None,
+    ):
         super(Net, self).__init__()
-
         self.a = n_input
         self.b = n_hidden1
         self.c = n_hidden2
@@ -48,6 +55,7 @@ class Net(nn.Module):
 
         weights is a list of size a*b+b + b*c+c + c*d+d.
         """
+
         weights = torch.FloatTensor(weights)
         with torch.no_grad():
             x = self.a * self.b
@@ -55,6 +63,7 @@ class Net(nn.Module):
             y = xx + self.b * self.c
             yy = y + self.c
             z = yy + self.c * self.d
+
             self.fc1.weight.data = weights[0:x].reshape(self.b, self.a)
             self.fc1.bias.data = weights[x:xx]
             self.fc2.weight.data = weights[xx:y].reshape(self.c, self.b)

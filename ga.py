@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import copy
 from game import Game
 from settings import *
 import os
@@ -22,11 +23,29 @@ class Individual:
         self.opp_hp = 0
         self.fitness = 0
 
+    def _h(self, x, y, z):
+        """
+        x: player's hp [0..PLAYER1_HP]
+        y: opp's hp [0..PLAYER2_HP]
+        z: ticks [0..MAX_TICKS]
+        """
+        if x <= 0 and y > 0:
+            return 0
+        x /= PLAYER1_HP
+        y /= PLAYER2_HP
+        z /= MAX_TICKS
+
+        wx = 0.2
+        wy = -0.7
+        wz = -0.1
+
+        return (wx * x + wy * y + wz * z + 0.8) * 10000
+
     def get_fitness(self, opp_genes):
         """Get the fitness of Individual."""
-        game = Game(self.genes, opp_genes, show=True)
-        self.ticks, self.player_hp, self.opp_hp = game.play()
-        self.fitness = (self.player_hp - self.opp_hp + 1 / self.ticks) * 100000
+        game = Game(self.genes, opp_genes)
+        self.player_hp, self.opp_hp, self.ticks = game.play()
+        self.fitness = self._h(self.player_hp, self.opp_hp, self.ticks)
 
 
 class GA:
@@ -44,27 +63,30 @@ class GA:
     def __init__(
         self, p_size=P_SIZE, c_size=C_SIZE, genes_len=GENES_LEN, mutate_rate=MUTATE_RATE
     ):
+        self.generation = 0
         self.p_size = p_size
         self.c_size = c_size
         self.genes_len = genes_len
         self.mutate_rate = mutate_rate
         self.population = []
-        self.best_individual = None
+        self.best_individual = None  # in current generation
         self.avg_fitness = 0
-        self.opp_genes = np.random.uniform(-1, 1, self.genes_len)
+        self.opp_individual = Individual(np.random.uniform(-1, 1, genes_len))
+        self.update_step = INIT_UPDATE_GAP
 
     def generate_ancestor(self):
-        for i in range(self.p_size):
+        for _ in range(self.p_size):
             genes = np.random.uniform(-1, 1, self.genes_len)
             self.population.append(Individual(genes))
 
-    def inherit_ancestor(self):
-        """Load genes from './genes/all/{i}', i: the ith individual."""
-        for i in range(self.p_size):
-            pth = os.path.join("genes", "all", str(i))
-            with open(pth, "r") as f:
-                genes = np.array(list(map(float, f.read().split())))
-                self.population.append(Individual(genes))
+    def inherit_ancestor(self, generation):
+        """Load genes from './genes/{generation}'."""
+        for filename in os.listdir(os.path.join("genes", str(generation))):
+            if not filename.startswith("opp") and not filename.startswith("best"):
+                genes_pth = os.path.join("genes", str(generation), filename)
+                with open(genes_pth, "rb") as f:
+                    genes = np.load(f)
+                    self.population.append(Individual(genes))
 
     def crossover(self, c1_genes, c2_genes):
         """Single point crossover."""
@@ -106,13 +128,12 @@ class GA:
         """The main procss of Genetic Algorithm."""
         sum_fitness = 0
         for individual in self.population:
-            individual.get_fitness(self.opp_genes)
+            individual.get_fitness(self.opp_individual.genes)
             sum_fitness += individual.fitness
         self.avg_fitness = sum_fitness / len(self.population)
 
-        self.population = self.elitism_selection(
-            self.p_size
-        )  # Select parents to generate children.
+        # Select parents to generate children.
+        self.population = self.elitism_selection(self.p_size)
         self.best_individual = self.population[0]
         random.shuffle(self.population)
 
@@ -130,21 +151,48 @@ class GA:
         random.shuffle(children)
         self.population.extend(children)
 
-    def save_best(self):
+        self.generation += 1
+
+        if self.generation % self.update_step == 0:
+            self.save()
+            self.opp_individual = copy.deepcopy(self.best_individual)
+            self.update_step += int(self.update_step * UPDATE_RATE)
+
+    def save(self):
+        """Save the best individual, the opponent's genes and the population."""
+        file_path = os.path.join("genes", str(self.generation))
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+        else:
+            for file in os.listdir(file_path):
+                os.remove(os.path.join(file_path, file))
+
+        self._save_best()
+        self._save_opp()
+        self._save_all()
+
+    def _save_best(self):
         """Save the best individual so far."""
         fitness = int(self.best_individual.fitness)
-        genes_pth = os.path.join("genes", "best", str(fitness))
-        with open(genes_pth, "w") as f:
-            for gene in self.best_individual.genes:
-                f.write(str(gene) + " ")
+        genes_pth = os.path.join("genes", str(self.generation), f"best_{fitness}")
+        with open(genes_pth, "wb") as f:
+            np.save(f, self.best_individual.genes)
 
-    def save_all(self):
+    def _save_opp(self):
+        """Save the opponent's genes."""
+        self.opp_individual.get_fitness(self.best_individual.genes)
+        fitness = int(self.opp_individual.fitness)
+        genes_pth = os.path.join("genes", str(self.generation), f"opp_{fitness}")
+        with open(genes_pth, "wb") as f:
+            np.save(f, self.opp_individual.genes)
+
+    def _save_all(self):
         """Save the population."""
         for individual in self.population:
-            individual.get_fitness()
+            individual.get_fitness(self.opp_individual.genes)
         population = self.elitism_selection(self.p_size)
         for i in range(len(population)):
-            pth = os.path.join("genes", "all", str(i))
-            with open(pth, "w") as f:
-                for gene in self.population[i].genes:
-                    f.write(str(gene) + " ")
+            fitness = int(population[i].fitness)
+            genes_pth = os.path.join("genes", str(self.generation), f"{i}_{fitness}")
+            with open(genes_pth, "wb") as f:
+                np.save(f, population[i].genes)

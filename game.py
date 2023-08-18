@@ -1,10 +1,11 @@
 import pygame as pg
 import random
-import numpy as np
-import os
 import time
-from player import Player, PlayerAttr
-from players_attr import player1_attr, player2_attr
+import os
+import numpy as np
+from nn import Net
+from player import Player
+from players_attr import get_player_attr
 from settings import *
 
 
@@ -23,19 +24,20 @@ class Game:
 
         self.ticks = 0
 
+        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         board = [[x, y] for x in range(self.X) for y in range(self.Y)]
 
         player1 = Player(
             body=random.choice(board),
-            attr=player1_attr,
-            genes=player1_genes,
+            attr=get_player_attr(0),
+            nn=Net(weights=player1_genes.copy()),
             board_x=self.X,
             board_y=self.Y,
         )
         player2 = Player(
             body=random.choice(board),
-            attr=player2_attr,
-            genes=player2_genes,
+            attr=get_player_attr(1),
+            nn=Net(weights=player2_genes.copy()),
             board_x=self.X,
             board_y=self.Y,
         )
@@ -62,14 +64,25 @@ class Game:
             for player in self.players:
                 player.get_action()
 
+            # print(
+            #     ACTIONS[self.players[0].actions[-1]],
+            #     "  ",
+            #     ACTIONS[self.players[1].actions[-1]],
+            # )
+
             for player in self.players:
-                player.react()
+                player.react(self.ticks)
 
             self._update()
 
             if self._is_over():
-                return self.ticks, self.players[0].attr.hp, self.players[1].attr.hp
-            time.sleep(1)
+                if self.show:
+                    self._draw()
+                return (
+                    self.players[0].attr.hp,
+                    self.players[1].attr.hp,
+                    self.ticks,
+                )
 
     def _is_over(self):
         """Check if the game is over."""
@@ -94,9 +107,10 @@ class Game:
             return True
 
     def _update(self):
-        self.ticks += 1
         for player in self.players:
             player.update(self.ticks)
+
+        self.ticks += 1
 
     def _draw(self):
         self.screen.fill(BGCOLOR)
@@ -136,14 +150,14 @@ class Game:
 
         # Draw player's action text
         for i, player in enumerate(self.players):
-            text = f"Move{i+1}:  {str(ACTIONS[player.actions[-1]])}"
+            text = f"P{i+1}:  {str(ACTIONS[player.actions[-1]])}"
             text_len = len(text) // 2 * 10
             text = pg.font.SysFont(FONT_NAME, 16).render(text, True, WHITE)
             text_rect = text.get_rect()
             text_rect.center = (
-                MARGIN_SIZE
+                MARGIN_SIZE // 4
                 + text_len
-                + i * (self.width - 2 * MARGIN_SIZE - 2 * text_len),
+                + i * (self.width - MARGIN_SIZE * 2 - text_len),
                 self.height - MARGIN_SIZE // 2,
             )
             self.screen.blit(text, text_rect)
@@ -166,6 +180,7 @@ class Game:
     def _event(self):
         """Get event from user interaction"""
         self.clock.tick(FPS)
+        # time.sleep(1)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.running = False
@@ -173,32 +188,49 @@ class Game:
                 quit()
 
 
-def play_best(fitness):
+def best_vs_opp(generation):
     """Use the saved Neural Network model play the game.
     Args:
-        fitness: Specify which individual's genes to load, also indicates the highest fitness it can get.
+        generation: the generation of the saved model.
     """
-    genes_pth = os.path.join("genes", "best", str(fitness))
-    with open(genes_pth, "r") as f:
-        genes = np.array(list(map(float, f.read().split())))
+    for filename in os.listdir(os.path.join("genes", str(generation))):
+        if filename.startswith("opp"):
+            opp_genes_pth = os.path.join("genes", str(generation), filename)
+            with open(opp_genes_pth, "rb") as f:
+                opp_genes = np.load(f)
+        elif filename.startswith("best"):
+            best_genes_pth = os.path.join("genes", str(generation), filename)
+            with open(best_genes_pth, "rb") as f:
+                best_genes = np.load(f)
+
+    game = Game(best_genes, opp_genes, show=True)
+    game.play()
 
 
-def play_all(n=P_SIZE):
+def all_vs_opp(generation):
     """Use the saved population's genes play the game.
     Args:
         n: the size of the population.
     """
     genes_list = []
-    for i in range(n):
-        genes_pth = os.path.join("genes", "all", str(i))
-        with open(genes_pth, "r") as f:
-            genes = np.array(list(map(float, f.read().split())))
-        genes_list.append(genes)
+
+    for filename in os.listdir(os.path.join("genes", str(generation))):
+        if filename.startswith("opp"):
+            opp_genes_pth = os.path.join("genes", str(generation), filename)
+            with open(opp_genes_pth, "rb") as f:
+                opp_genes = np.load(f)
+        elif filename.startswith("best"):
+            pass
+        else:
+            genes_pth = os.path.join("genes", str(generation), filename)
+            with open(genes_pth, "rb") as f:
+                genes = np.load(f)
+                genes_list.append(genes)
+
+    for genes in genes_list:
+        game = Game(genes, opp_genes, show=True)
+        game.play()
 
 
 if __name__ == "__main__":
-    basic_player_attr = PlayerAttr(hp=100, atk=10, spd=10, rng=1)
-    game = Game(
-        player1_attr=basic_player_attr, player2_attr=basic_player_attr, show=True
-    )
-    game.play()
+    best_vs_opp(6083)

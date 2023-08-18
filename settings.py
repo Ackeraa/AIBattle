@@ -3,8 +3,8 @@ from skills.skill_attack import SkillAttack
 TITTLE = "AI Battle"
 FONT_NAME = "arial"
 FPS = 60
-ROWS = 10
-COLS = 10
+ROWS = 6
+COLS = 6
 GRID_SIZE = 40
 MARGIN_SIZE = 50
 
@@ -23,14 +23,17 @@ LINE_COLOR = WHITE
 INF = 100000000
 
 # Player settings
+PLAYER1_HP = 100
+PLAYER2_HP = 150
 SKILLS = [
     SkillAttack(10, 10, 0, 1),
 ]
+
 SKILL_NUMS = len(SKILLS)
 ACTION_NUMS = SKILL_NUMS + 3
 HISTORY_LEN = 3
-# if the distance is larger than this, the player1 will die, game over
-MAX_AWAY_DIS = 10
+MAX_AWAY_DIS = 10  # if dis larger than this, the player1 will die, game over
+
 MAX_TICKS = 100
 ACTIONS = ["Do nothing", "Move towards", "Move away"]
 for skill in SKILLS:
@@ -52,4 +55,8 @@ GENES_LEN = (
 P_SIZE = 100
 C_SIZE = 400
 MUTATE_RATE = 0.1
-UPDATE_GENE_STEP = 1000
+
+INIT_UPDATE_GAP = 500  # initial gap between two updates of the opponent genes
+UPDATE_RATE = 1.3  # update gap will be multiplied by this after each update
+
+SAVE_GAP = 50  # save the all individual every SAVE_GAP generations

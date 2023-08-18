@@ -6,11 +6,12 @@ from settings import *
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    # inherit the ancestor from the given generation
     parser.add_argument(
         "-i",
         "--inherit",
-        action="store_true",
-        help="Whether to load genes from path ./genes/all.",
+        type=int,
+        help="inherit the ancestor from the given generation.",
     )
 
     parser.add_argument(
@@ -24,36 +25,24 @@ if __name__ == "__main__":
     ga = GA()
 
     if args.inherit:
-        ga.inherit_ancestor()
+        ga.inherit_ancestor(args.inherit)
     else:
         ga.generate_ancestor()
 
-    generation = 0
-    record = 0
+    i = 0
     while True:
-        generation += 1
+        i += 1
+        if i == 10000:
+            break
         ga.evolve()
         print(
-            "generation: {}, record: {}, best fitness: {}, average fitness: {}".format(
-                generation, record, ga.best_individual.fitness, ga.avg_fitness
+            "generation: {}, best fitness: {}, average fitness: {}".format(
+                ga.generation, int(ga.best_individual.fitness), int(ga.avg_fitness)
             )
         )
-
-        # Update the opponent's genes every UPDATE_GENE_STEP generation.
-        if generation % UPDATE_GENE_STEP == 0:
-            ga.opp_genes = ga.best_individual.genes
 
         # Show the best individual to play game.
         if args.show:
             genes = ga.best_individual.genes
-            game = Game(genes, ga.opp_genes)
+            game = Game(genes, ga.opp_individual.genes, show=True)
             game.play()
-
-        # Save the best individual.
-        if ga.best_individual.fitness >= record:
-            record = ga.best_individual.fitness
-            ga.save_best()
-
-        # Save the population every 20 generation.
-        if generation % 20 == 0:
-            ga.save_all()
