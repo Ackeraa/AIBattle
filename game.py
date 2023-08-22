@@ -180,7 +180,7 @@ class Game:
     def _event(self):
         """Get event from user interaction"""
         self.clock.tick(FPS)
-        # time.sleep(1)
+        time.sleep(1)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.running = False

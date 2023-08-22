@@ -12,6 +12,6 @@ def choose_skills(skill_ids):
 
 def get_player_attr(i):
     if i == 0:
-        return PlayerAttr(hp=PLAYER1_HP, color=BLUE, skills=choose_skills([0]))
+        return PlayerAttr(hp=PLAYER1_HP, color=BLUE, skills=choose_skills([0, 1]))
     else:
-        return PlayerAttr(hp=PLAYER2_HP, color=RED, skills=choose_skills([0]))
+        return PlayerAttr(hp=PLAYER2_HP, color=RED, skills=choose_skills([0, 1]))

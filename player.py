@@ -17,8 +17,13 @@ class Player:
         self.opp = opp
         self.board_x = board_x
         self.board_y = board_y
+        self.stunned = False
 
     def get_action(self):
+        if self.stunned:
+            self.actions.append(0)
+            return
+
         state = self._get_state()
         action = self.nn.predict(state)
         if len(self.actions) > HISTORY_LEN:

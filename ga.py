@@ -29,8 +29,6 @@ class Individual:
         y: opp's hp [0..PLAYER2_HP]
         z: ticks [0..MAX_TICKS]
         """
-        if x <= 0 and y > 0:
-            return 0
         x /= PLAYER1_HP
         y /= PLAYER2_HP
         z /= MAX_TICKS
@@ -118,7 +116,7 @@ class GA:
             current = 0
             for individual in self.population:
                 current += individual.fitness
-                if current > pick:
+                if current >= pick:
                     selection.append(individual)
                     break
 

@@ -18,7 +18,6 @@ class SkillAttack(SkillBase):
         if self.used_at + self.delay >= ticks:
             if self.calc_dis(self.player, self.opp) <= self.range:
                 self.opp.attr.hp -= self.damage
-                self.used_at = -1
 
     def calc_dis(self, player, opp):
         return abs(player.body[0] - opp.body[0]) + abs(player.body[1] - opp.body[1])

@@ -1,4 +1,5 @@
 from skills.skill_attack import SkillAttack
+from skills.skill_stun import SkillStun
 
 TITTLE = "AI Battle"
 FONT_NAME = "arial"
@@ -24,9 +25,10 @@ INF = 100000000
 
 # Player settings
 PLAYER1_HP = 100
-PLAYER2_HP = 150
+PLAYER2_HP = 100
 SKILLS = [
     SkillAttack(10, 10, 0, 1),
+    SkillStun(10, 3, 0, 10),
 ]
 
 SKILL_NUMS = len(SKILLS)
@@ -41,8 +43,8 @@ for skill in SKILLS:
 
 # AI settings
 N_INPUT = ACTION_NUMS + 3
-N_HIDDEN1 = 20
-N_HIDDEN2 = 12
+N_HIDDEN1 = 30
+N_HIDDEN2 = 20
 N_OUTPUT = ACTION_NUMS
 GENES_LEN = (
     N_INPUT * N_HIDDEN1
@@ -54,9 +56,9 @@ GENES_LEN = (
 )
 P_SIZE = 100
 C_SIZE = 400
-MUTATE_RATE = 0.1
+MUTATE_RATE = 0.12
 
-INIT_UPDATE_GAP = 500  # initial gap between two updates of the opponent genes
+INIT_UPDATE_GAP = 1000  # initial gap between two updates of the opponent genes
 UPDATE_RATE = 1.3  # update gap will be multiplied by this after each update
 
 SAVE_GAP = 50  # save the all individual every SAVE_GAP generations
